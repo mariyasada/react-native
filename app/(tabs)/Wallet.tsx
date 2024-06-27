@@ -1,13 +1,12 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 import { walletStore } from '@/store/walletStore';
 import { importWallet,sendTransaction } from '@/utils/apis';
 import { StyleSheet, View, Text, TextInput, TouchableOpacity } from 'react-native';
-import * as bitcoin from 'bitcoinjs-lib';
 
 
 const Wallet: React.FC = observer(() => {
-  const [privateKey, setPrivateKey] = useState('');
+  const [privateKey, setPrivateKey] = useState<string|undefined>('');
   const [network, setNetwork] = useState<'bitcoin' | 'polygon'>('bitcoin'); 
   const [loading, setLoading] = useState(false);
   const [transactionLoading, settranscationLoading] = useState(false);
@@ -16,6 +15,7 @@ const Wallet: React.FC = observer(() => {
 
   const handleImportWallet = async () => {
     setLoading(true);
+   
     try {   
       const walletAddress = await importWallet(network, privateKey);
       console.log(`${network} wallet imported successfully:`, walletAddress);
@@ -51,14 +51,27 @@ const Wallet: React.FC = observer(() => {
 }
   };
 
-  const generatePrivateKey=()=>{
-    if(network==="bitcoin"){
-     const keyPair = bitcoin.ECPair.makeRandom();
-    const { address } = bitcoin.payments.p2pkh({ pubkey: keyPair.publicKey });
-    const privateKey1 = keyPair.toWIF();
-    setPrivateKey(privateKey1)
-    }
-  }
+  useEffect(()=>{
+   if(network==="bitcoin"){
+    setPrivateKey(process.env.EXPO_PUBLIC_BITCOIN_PRIVATE_KEY)
+   }
+   else{
+     setPrivateKey(process.env.EXPO_PUBLIC_POLYGON_PRIVATE_KEY)
+   }
+  },[network])
+
+//   const generatePrivatekey=()=>{
+//       const testnet = bitcoin.networks.testnet;
+
+//     // Generate a random keypair
+//     const keyPair = bitcoin.ECPair.makeRandom({ network: testnet });
+//     const { address } = bitcoin.payments.p2pkh({ pubkey: keyPair.publicKey, network: testnet });
+//     const privateKey = keyPair.toWIF();
+
+//     console.log('Address:', address);
+//     console.log('Private Key:', privateKey);
+// }
+
 
   return (
     <View style={styles.container}>
