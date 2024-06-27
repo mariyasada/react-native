@@ -1,23 +1,25 @@
 import React, { useState } from 'react';
 import { observer } from 'mobx-react-lite';
 import { walletStore } from '@/store/walletStore';
-import { importWallet } from '@/utils/apis';
+import { importWallet,sendTransaction } from '@/utils/apis';
 import { StyleSheet, View, Text, TextInput, TouchableOpacity } from 'react-native';
+import * as bitcoin from 'bitcoinjs-lib';
+
 
 const Wallet: React.FC = observer(() => {
   const [privateKey, setPrivateKey] = useState('');
   const [network, setNetwork] = useState<'bitcoin' | 'polygon'>('bitcoin'); 
   const [loading, setLoading] = useState(false);
+  const [transactionLoading, settranscationLoading] = useState(false);
+  const [receiver, setReceiver] = useState('');
+  const [amount, setAmount] = useState('');
 
   const handleImportWallet = async () => {
     setLoading(true);
-    try {
-      if(privateKey ==="") alert("please enter value in private key field");
-      else{
+    try {   
       const walletAddress = await importWallet(network, privateKey);
       console.log(`${network} wallet imported successfully:`, walletAddress);
       setLoading(false);
-      }
     } catch (error) {
       console.error('Error importing wallet:', error);
       walletStore.setError('Failed to import wallet');
@@ -27,6 +29,36 @@ const Wallet: React.FC = observer(() => {
         setLoading(false);
     }
   };
+
+  const handleSendTransaction = async () => {
+   
+    try {
+      if(receiver==="" && amount==="") alert("please enter value in both field");
+      else{
+        settranscationLoading(true);
+      let walletAddress=network==="bitcoin"? walletStore.bitcoinWalletAddress:walletStore.polygonWalletAddress
+      const { id, status, fee, link } = await sendTransaction(network,walletAddress, receiver, amount,privateKey);
+      console.log(`${network} transaction sent successfully:`, id);
+      settranscationLoading(false);
+      }
+    } catch (error) {
+      console.error('Error sending transaction:', error);
+      walletStore.setError('Failed to send transaction');
+      settranscationLoading(false);
+    }
+    finally{
+      setLoading(false);
+}
+  };
+
+  const generatePrivateKey=()=>{
+    if(network==="bitcoin"){
+     const keyPair = bitcoin.ECPair.makeRandom();
+    const { address } = bitcoin.payments.p2pkh({ pubkey: keyPair.publicKey });
+    const privateKey1 = keyPair.toWIF();
+    setPrivateKey(privateKey1)
+    }
+  }
 
   return (
     <View style={styles.container}>
@@ -58,13 +90,33 @@ const Wallet: React.FC = observer(() => {
       >
         <Text style={styles.buttonText}>{loading ? 'Importing...' : 'Import Wallet'}</Text>
       </TouchableOpacity>
-      {walletStore.error && <Text style={styles.error}>{walletStore.error}</Text>}
       {network === 'bitcoin' && walletStore.bitcoinWalletAddress && (
         <Text style={styles.success}>Bitcoin Wallet imported successfully: {walletStore.bitcoinWalletAddress}</Text>
       )}
       {network === 'polygon' && walletStore.polygonWalletAddress && (
         <Text style={styles.success}>Polygon Wallet imported successfully: {walletStore.polygonWalletAddress}</Text>
       )}
+       <Text style={styles.header}>Send Transaction</Text>
+      <TextInput
+        placeholder="Receiver Address"
+        value={receiver}
+        onChangeText={(text) => setReceiver(text)}
+        style={styles.input}
+      />
+      <TextInput
+        placeholder="Amount"
+        value={amount}
+        onChangeText={(text) => setAmount(text)}
+        style={styles.input}
+      />
+      <TouchableOpacity
+        onPress={handleSendTransaction}
+        style={[styles.button, { backgroundColor: transactionLoading? '#ccc' : '#007bff' }]}
+        disabled={loading}
+      >
+        <Text style={styles.buttonText}>{transactionLoading? 'Sending...' : 'Send Transaction'}</Text>
+      </TouchableOpacity>
+      {walletStore.error && <Text style={styles.error}>{walletStore.error}</Text>}
     </View>
   );
 });

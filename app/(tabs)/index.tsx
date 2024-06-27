@@ -7,13 +7,12 @@ import Header from '@/components/Header';
 import { useLocalObservable } from 'mobx-react-lite'; 
 import { observer } from 'mobx-react-lite'; 
 
+
 const HomeScreen: React.FC = observer(() =>   {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.sidebar}>
         <Header />
-      </View>
       <HomeScreenCards />
     </SafeAreaView>
   );
@@ -23,7 +22,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     marginTop:20,
-    flexDirection: 'row',
+    flexDirection: 'column',
     
   },
   sidebar: {
